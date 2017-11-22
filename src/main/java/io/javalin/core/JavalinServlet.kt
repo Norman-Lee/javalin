@@ -53,14 +53,19 @@ class JavalinServlet(
 
             for (beforeEntry in matcher.findEntries(HandlerType.BEFORE, requestUri)) {
                 beforeEntry.handler.handle(ContextUtil.update(ctx, beforeEntry, requestUri))
+                if(ctx.committed()){
+                    break
+                }
             }
 
             val entries = matcher.findEntries(type, requestUri)
             if (!entries.isEmpty()) {
-                for (endpointEntry in entries) {
-                    endpointEntry.handler.handle(ContextUtil.update(ctx, endpointEntry, requestUri))
-                    if (!ctx.nexted()) {
-                        break
+                if(!ctx.committed()) {
+                    for (endpointEntry in entries) {
+                        endpointEntry.handler.handle(ContextUtil.update(ctx, endpointEntry, requestUri))
+                        if (!ctx.nexted() || ctx.committed()) {
+                            break
+                        }
                     }
                 }
             } else if (type !== HandlerType.HEAD || type === HandlerType.HEAD && matcher.findEntries(HandlerType.GET, requestUri).isEmpty()) {
@@ -76,8 +81,13 @@ class JavalinServlet(
         }
 
         try { // after-handlers
-            for (afterEntry in matcher.findEntries(HandlerType.AFTER, requestUri)) {
-                afterEntry.handler.handle(ContextUtil.update(ctx, afterEntry, requestUri))
+            if(!ctx.committed()) {
+                for (afterEntry in matcher.findEntries(HandlerType.AFTER, requestUri)) {
+                    afterEntry.handler.handle(ContextUtil.update(ctx, afterEntry, requestUri))
+                    if(ctx.committed()){
+                        break
+                    }
+                }
             }
         } catch (e: Exception) {
             // after-handlers can also throw exceptions

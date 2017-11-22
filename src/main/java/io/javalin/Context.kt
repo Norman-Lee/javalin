@@ -33,6 +33,8 @@ class Context(private val servletResponse: HttpServletResponse,
 
     private var passedToNextHandler: Boolean = false
 
+    private var isCommitted : Boolean = false
+
     private var resultString: String? = null
     private var resultStream: InputStream? = null
 
@@ -185,6 +187,12 @@ class Context(private val servletResponse: HttpServletResponse,
     //
 
     fun response(): HttpServletResponse = servletResponse
+
+    fun commit() {
+        isCommitted = true
+    }
+
+    fun committed() : Boolean = isCommitted
 
     fun result(resultString: String): Context {
         this.resultString = resultString
