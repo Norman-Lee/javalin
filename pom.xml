@@ -85,6 +85,17 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- AWS Lambda Dependencies -->
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-lambda-java-core</artifactId>
+            <version>1.1.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-lambda-java-events</artifactId>
+            <version>2.0.1</version>
+        </dependency>
         <!-- BEGIN Optional dependencies -->
         <dependency>
             <groupId>commons-fileupload</groupId>
