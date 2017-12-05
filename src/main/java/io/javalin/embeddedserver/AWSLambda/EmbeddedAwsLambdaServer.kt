@@ -6,7 +6,7 @@ import io.javalin.embeddedserver.EmbeddedServer
 import org.slf4j.LoggerFactory
 
 
-class EmbeddedAWSLambdaServer(private val javalinServlet: JavalinServlet) : EmbeddedServer{
+class EmbeddedAwsLambdaServer(private val javalinServlet: JavalinServlet) : EmbeddedServer{
     private val log = LoggerFactory.getLogger(EmbeddedServer::class.java)
 
     override fun start(port: Int): Int {
