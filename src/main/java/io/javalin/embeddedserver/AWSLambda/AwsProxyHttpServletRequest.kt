@@ -5,11 +5,14 @@ import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent
 import org.slf4j.LoggerFactory
 import java.io.BufferedReader
 import java.security.Principal
+import java.text.ParseException
+import java.text.SimpleDateFormat
 import java.util.*
 import javax.servlet.*
 import javax.servlet.http.*
 import javax.ws.rs.core.HttpHeaders
 import javax.ws.rs.core.SecurityContext
+import kotlin.collections.ArrayList
 
 class AwsProxyHttpServletRequest(AwsRequest : APIGatewayProxyRequestEvent, context: Context, AwsSecurityContext : SecurityContext) : HttpServletRequest {
 
@@ -23,6 +26,7 @@ class AwsProxyHttpServletRequest(AwsRequest : APIGatewayProxyRequestEvent, conte
     companion object {
         val HEADER_VALUE_SEPARATOR = ";"
         val HEADER_KEY_VALUE_SEPARATOR = "="
+        val HEADER_DATE_FORMAT = "EEE, d MMM yyyy HH:mm:ss z"
     }
 
     private var servletContext : ServletContext? = null
@@ -44,8 +48,47 @@ class AwsProxyHttpServletRequest(AwsRequest : APIGatewayProxyRequestEvent, conte
     }
 
     override fun getDateHeader(p0: String?): Long {
+        val dateString = getHeaderCaseInsensitive(HttpHeaders.DATE) ?: return Date().time
+
+        val dateFormatter = SimpleDateFormat(HEADER_DATE_FORMAT)
+        try {
+            return dateFormatter.parse(dateString).time
+        } catch (e : ParseException){
+            log.error("Could not parse date header", e)
+            return Date().time
+        }
 
     }
+
+    override fun getHeader(p0: String): String? {
+        return getHeaderCaseInsensitive(p0)
+    }
+
+    override fun getHeaders(p0: String): Enumeration<String> {
+        val headerValue = getHeaderCaseInsensitive(p0) ?: return Collections.enumeration(ArrayList<String>())
+
+        return Collections.enumeration(arrayListOf(headerValue))
+    }
+
+    override fun getHeaderNames(): Enumeration<String> {
+        if(request.headers == null){
+            return Collections.emptyEnumeration()
+        }
+        return Collections.enumeration(request.headers.keys)
+
+    }
+
+    override fun getIntHeader(p0: String): Int {
+        val headerValue = getHeaderCaseInsensitive(p0) ?: return -1
+
+        return Integer.parseInt(headerValue)
+    }
+
+    override fun getMethod(): String {
+        return request.httpMethod
+    }
+
+
 
     //HttpServletRequest Implementations
 
@@ -253,9 +296,6 @@ class AwsProxyHttpServletRequest(AwsRequest : APIGatewayProxyRequestEvent, conte
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
-    override fun getMethod(): String {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
 
 
 
@@ -268,9 +308,7 @@ class AwsProxyHttpServletRequest(AwsRequest : APIGatewayProxyRequestEvent, conte
 
 
 
-    override fun getHeaders(p0: String?): Enumeration<String> {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
+
 
     override fun getUserPrincipal(): Principal {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
@@ -323,13 +361,8 @@ class AwsProxyHttpServletRequest(AwsRequest : APIGatewayProxyRequestEvent, conte
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
-    override fun getHeader(p0: String?): String {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
 
-    override fun getIntHeader(p0: String?): Int {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
+
 
 
     override fun getContentType(): String {
@@ -346,9 +379,6 @@ class AwsProxyHttpServletRequest(AwsRequest : APIGatewayProxyRequestEvent, conte
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
-    override fun getHeaderNames(): Enumeration<String> {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
 
 
 
@@ -369,21 +399,29 @@ class AwsProxyHttpServletRequest(AwsRequest : APIGatewayProxyRequestEvent, conte
     }
 
     private fun parseCookieHeaderValue(headerValue: String) : Array<Cookie> {
+        val parsedHeaders = parseHeaderValue(headerValue)
 
+        return parsedHeaders
+                .filter { it -> it.first != null }
+                .map { it -> Cookie(it.first, it.second) }
+                .toTypedArray()
     }
 
-    private fun parseHeaderValue(headerValue : String?) : List<Map.Entry<String, String>> {
-        val values =
+    private fun parseHeaderValue(headerValue : String?) : List<Pair<String?, String>> {
+        val values = mutableMapOf<String?, String>()
         if(headerValue == null){
-            return values
+            return values.toList()
         }
 
         headerValue.split(HEADER_VALUE_SEPARATOR).map{
             val kvSplit = it.split(HEADER_KEY_VALUE_SEPARATOR)
             if(kvSplit.size != 2){
-                values.
+                values.put(null, it.trim())
+            } else {
+                values.put(kvSplit[0].trim(), kvSplit[1].trim())
             }
         }
+        return values.toList()
     }
 
 }
